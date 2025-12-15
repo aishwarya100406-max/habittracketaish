@@ -1,10 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
+import WeeklySummary from "./pages/WeeklySummary";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Habits from "./pages/Habits";
+
 
 function App() {
   return (
@@ -20,13 +22,14 @@ function App() {
 
           {/* Protected route */}
           <Route
-            path="/habits"
+            path="/weekly-summary"
             element={
               <ProtectedRoute>
-                <Habits />
+                <WeeklySummary habits={habits} />
               </ProtectedRoute>
             }
           />
+
         </Routes>
       </BrowserRouter>
     </AuthProvider>
