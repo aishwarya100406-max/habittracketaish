@@ -1,8 +1,10 @@
+// client/src/pages/AddHabit.jsx
 import React from 'react'
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import  {toast} from 'react-toastify';
 import { useOutletContext } from "react-router-dom";
+import { detectCycle } from '../utils/utils';
 
 export default function AddHabit() {
 
@@ -12,13 +14,12 @@ export default function AddHabit() {
   const [frequency, setFrequency] = useState("Daily");
   const [isHabitAdded, setIsHabitAdded] = useState(false);
   const [selectedDays, setSelectedDays] = useState([]);
+  const [selectedPrereqs, setSelectedPrereqs] = useState([]);
   const navigate = useNavigate();
 
-  // Get days in a month
-  const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-  const [selectedYear, selectedMonth] = startDate.split("-").map(Number);
+  // ... existing helpers omitted for brevity (keep them unchanged) ...
+  // We'll keep your same helper functions like toLocalDate, sameYMD, daysInMonth, etc.
 
-  // --- Helpers ---
   const toLocalDate = (yyyyMmDd) => {
     const [y, m, d] = yyyyMmDd.split("-").map(Number);
     return new Date(y, m - 1, d);
@@ -32,10 +33,12 @@ export default function AddHabit() {
   const daysBetween = (a, b) =>
     Math.round((atMidnight(a) - atMidnight(b)) / 86400000);
 
-  // --- Use local-parsed start & today ---
   const start = toLocalDate(startDate);
   const today = new Date();
 
+  // --- day-grid helpers (unchanged from your file) ---
+  const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+  const [selectedYear, selectedMonth] = startDate.split("-").map(Number);
   const daysInMonth = Array.from(
     { length: getDaysInMonth(selectedYear, selectedMonth - 1) },
     (_, i) => {
@@ -66,7 +69,6 @@ export default function AddHabit() {
     }
   );
 
-  // Class handler for dynamic heatmap
   const getDayClass = (day) => {
     if (day.isBeforeStart) {
       return "bg-transparent border-gray-600";
@@ -91,54 +93,58 @@ export default function AddHabit() {
     return "bg-transparent border-gray-600";
   };
 
-  // Get month name for display
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
   ];
   const monthName = monthNames[selectedMonth - 1];
 
-  // Handle habit addition animation and navigation
-const handleAddHabit = () => {
-  if (!habitName.trim()) {
-    toast.error("Please enter a habit name!");
-    return;
-  }
+  // Handle habit addition
+  const handleAddHabit = () => {
+    if (!habitName.trim()) {
+      toast.error("Please enter a habit name!");
+      return;
+    }
 
-  const newHabit = {
-    id: Date.now(), // unique id
-    title: habitName,
-    highestStreak: 0,
-    currentStreak: 0,
-    
-    freq: {
-      mode: frequency,
-      days: selectedDays,
-      n: selectedDays.length,
-      startDate,
-    },
-    progress: [],
-    
-    lastCompleted: null,
+    // candidate id for cycle detection
+    const candidateId = Date.now();
+
+    // Validate cycle
+    if (detectCycle(candidateId, selectedPrereqs, habits)) {
+      toast.error("Cannot add: selected prerequisites would create a circular dependency.");
+      return;
+    }
+
+    const newHabit = {
+      id: candidateId,
+      title: habitName,
+      highestStreak: 0,
+      currentStreak: 0,
+      freq: {
+        mode: frequency,
+        days: selectedDays,
+        n: selectedDays.length,
+        startDate,
+      },
+      prerequisites: [...selectedPrereqs],
+      progress: [],
+      lastCompleted: null,
+    };
+
+    setHabits((prev) => [...prev, newHabit]);
+
+    toast.success("Habit saved successfully!", {
+      position: "top-right",
+      autoClose: 2000,
+    });
+
+    setIsHabitAdded(true);
+    setTimeout(() => {
+      setIsHabitAdded(false);
+      navigate("/");
+    }, 1000);
   };
 
-  // assuming you're passing setHabits as a prop
-  setHabits((prev) => [...prev, newHabit]);
-
-  toast.success("Habit saved successfully!", {
-    position: "top-right",
-    autoClose: 2000,
-  });
-
-  setIsHabitAdded(true);
-  setTimeout(() => {
-    setIsHabitAdded(false);
-    navigate("/");
-  }, 1000);
-};
-
-
-  // Handle day selection for Weekly and Custom frequency
   const handleDayToggle = (day) => {
     if (frequency === "Weekly") {
       setSelectedDays([day]);
@@ -149,6 +155,10 @@ const handleAddHabit = () => {
     }
   };
 
+  const togglePrereq = (id) => {
+    setSelectedPrereqs(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 p-4 sm:p-6">
       <div className="max-w-6xl mx-auto bg-slate-800 rounded-2xl p-6 sm:p-10 shadow-2xl border border-sky-800">
@@ -157,6 +167,7 @@ const handleAddHabit = () => {
         <div className="flex flex-col sm:flex-row gap-10">
           {/* Left side form */}
           <div className="w-full sm:w-1/2 space-y-6">
+            {/* Habit Name, Start date, Frequency (unchanged) */}
             <div>
               <label className="block text-lg sm:text-xl font-semibold text-sky-200 mb-2 text-left tracking-wide">Habit Name</label>
               <input
@@ -191,27 +202,32 @@ const handleAddHabit = () => {
                 <option value="Custom">Custom</option>
               </select>
             </div>
-            {(frequency === "Weekly" || frequency === "Custom") && (
-              <div>
-                <label className="block text-lg sm:text-xl font-semibold text-sky-200 mb-2 text-left tracking-wide">
-                  {frequency === "Weekly" ? "Select Day" : "Select Days"}
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleDayToggle(index)}
-                      className={`px-3 py-1 rounded-lg border-2 ${selectedDays.includes(index) ? "bg-sky-500 text-white border-sky-700" : "bg-slate-700 text-white border-sky-700"} transition`}
-                    >
-                      {day}
-                    </button>
-                  ))}
-                </div>
+
+            {/* Pre-req selection UI */}
+            <div>
+              <label className="block text-lg sm:text-xl font-semibold text-sky-200 mb-2 text-left tracking-wide">Prerequisite Habits</label>
+              <p className="text-sm text-slate-400 mb-2">Select habits that must be completed before this one (same-day requirement).</p>
+              <div className="flex flex-col gap-2 max-h-40 overflow-auto p-2 bg-slate-700 rounded-md">
+                {habits.length === 0 ? (
+                  <div className="text-slate-400">No existing habits to choose from</div>
+                ) : (
+                  habits.map(h => (
+                    <label key={h.id} className={`flex items-center gap-3 p-1 rounded-md cursor-pointer hover:bg-slate-600 ${selectedPrereqs.includes(h.id) ? 'bg-slate-600' : ''}`}>
+                      <input
+                        type="checkbox"
+                        checked={selectedPrereqs.includes(h.id)}
+                        onChange={() => togglePrereq(h.id)}
+                        className="accent-sky-400"
+                      />
+                      <span className="text-slate-200">{h.title}</span>
+                    </label>
+                  ))
+                )}
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Right side heatmap */}
+          {/* Right side heatmap (unchanged) */}
           <div className="w-full sm:w-1/2 space-y-4">
             <h2 className="text-3xl sm:text-3xl font-extrabold text-sky-300 mb-6 text-center tracking-tight">Your Journey</h2>
             <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-sm sm:text-base">
@@ -250,4 +266,3 @@ const handleAddHabit = () => {
     </div>
   );
 }
-

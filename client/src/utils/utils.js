@@ -1,51 +1,97 @@
-export const isHabitDue = (habit, date) => {
-    if (!habit || !habit.freq) return false;
-    switch (habit.freq.mode) {
-      case "Daily":
-        return true; 
-      case "Weekly":
-        return habit.freq.days.includes(date.getDay());
-      case "Custom":
-        return habit.freq.days.includes(date.getDay());
-      default:
-        return false;
-    }
-  }
+// client/src/utils/utils.js
 
-export const formatDate = (date) => {
-  return date.toLocalDateString("en-IN");
+export const isHabitDue = (habit, date) => {
+  if (!habit || !habit.freq) return false;
+  const mode = (habit.freq.mode || "").toLowerCase();
+
+  switch (mode) {
+    case "daily":
+      return true;
+    case "weekly":
+    case "custom":
+      return Array.isArray(habit.freq.days) && habit.freq.days.includes(date.getDay());
+    default:
+      return false;
+  }
 }
 
-export const markHabitComplete = (habitId, date) => {
-    const habit = habits.find(h => h.id == habitId);
-    const dateInStr = formatDate(date.toISOString().split("T")[0]);
-    if (!habit.progress.includes(dateInStr)) habit.progress.push(dateInStr);
-    
-    // Current Streak calculation
-    if (!habit.lastCompleted) {
-    // first time completing
-    habit.currentStreak = 1;
-    } else {
-        const lastDate = new Date(habit.lastCompleted);
-        const diffDays = Math.floor((date - lastDate) / (1000 * 60 * 60 * 24));
-
-        if (habit.freq.mode === "daily") {
-          // daily: streak continues only if yesterday was completed
-          habit.currentStreak = diffDays === 1 ? habit.currentStreak + 1 : 1;
-        } else if (habit.freq.mode === "weekly" || habit.freq.mode === "custom") {
-          // weekly/custom: check if today is next scheduled day
-          const scheduled = habit.freq.days; // array of numbers 0-6
-          const lastDayIndex = scheduled.indexOf(lastDate.getDay());
-          const nextIndex = (lastDayIndex + 1) % scheduled.length;
-          const nextScheduledDay = scheduled[nextIndex];
-
-          habit.currentStreak = date.getDay() === nextScheduledDay ? habit.currentStreak + 1 : 1;
-        } else {
-          habit.currentStreak = 1;
-        }
-      }
-
-    if (habit.currentStreak > habit.highestStreak) habit.highestStreak = habit.currentStreak;
-    habit.lastCompleted = dateInStr;
-    setHabits([...habits]);
+export const formatDate = (input) => {
+  // Accepts Date or ISO-like string, returns YYYY-MM-DD
+  if (!input) return null;
+  if (typeof input === "string") {
+    // if a full ISO string or 'YYYY-MM-DD' passed
+    return input.split("T")[0];
   }
+  if (input instanceof Date) {
+    return input.toISOString().split("T")[0];
+  }
+  try {
+    const d = new Date(input);
+    return d.toISOString().split("T")[0];
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check if all prerequisites for `habit` are fulfilled on `date`.
+ * By default this checks same-day completions (A completed the same date as B's date).
+ * @param {object} habit - habit to check (may have .prerequisites: [ids])
+ * @param {Array} habits - array of all habit objects
+ * @param {Date} date - Date object
+ * @returns {boolean}
+ */
+export const isPrerequisitesMet = (habit, habits, date) => {
+  if (!habit || !Array.isArray(habit.prerequisites) || habit.prerequisites.length === 0) return true;
+  const dateStr = formatDate(date);
+  for (const pid of habit.prerequisites) {
+    const phab = habits.find(h => h.id === pid);
+    if (!phab) return false; // prereq missing => treat as unmet
+    if (!Array.isArray(phab.progress) || !phab.progress.includes(dateStr)) {
+      return false;
+    }
+  }
+  return true;
+};
+
+/**
+ * Detects whether adding `candidatePrereqs` to node `candidateId` would create a cycle
+ * in a graph where edges go from habit -> prerequisites (i.e., dependency edges).
+ * @param {number|string} candidateId
+ * @param {Array<number|string>} candidatePrereqs
+ * @param {Array} habits
+ * @returns {boolean} true if a cycle would exist
+ */
+export const detectCycle = (candidateId, candidatePrereqs = [], habits = []) => {
+  // Build adjacency list: node -> [prereqIds]
+  const adj = {};
+  habits.forEach(h => {
+    adj[h.id] = Array.isArray(h.prerequisites) ? [...h.prerequisites] : [];
+  });
+  adj[candidateId] = [...candidatePrereqs];
+
+  const visited = new Set();
+  const recStack = new Set();
+
+  const dfs = (node) => {
+    if (!adj[node]) return false;
+    if (!visited.has(node)) {
+      visited.add(node);
+      recStack.add(node);
+
+      for (const neigh of adj[node]) {
+        if (!visited.has(neigh) && dfs(neigh)) return true;
+        else if (recStack.has(neigh)) return true;
+      }
+    }
+    recStack.delete(node);
+    return false;
+  };
+
+  // Check all nodes for cycle
+  const nodes = Object.keys(adj);
+  for (const n of nodes) {
+    if (!visited.has(n) && dfs(n)) return true;
+  }
+  return false;
+};
