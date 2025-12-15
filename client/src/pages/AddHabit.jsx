@@ -2,7 +2,7 @@
 import React from 'react'
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import  {toast} from 'react-toastify';
+import { toast } from 'react-toastify';
 import { useOutletContext } from "react-router-dom";
 import { detectCycle } from '../utils/utils';
 
@@ -160,51 +160,16 @@ export default function AddHabit() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 p-4 sm:p-6">
-      <div className="max-w-6xl mx-auto bg-slate-800 rounded-2xl p-6 sm:p-10 shadow-2xl border border-sky-800">
-        <h1 className="text-5xl sm:text-5xl font-extrabold text-sky-300 mb-6 text-center tracking-tight">Add New Habit</h1>
-
-        <div className="flex flex-col sm:flex-row gap-10">
-          {/* Left side form */}
-          <div className="w-full sm:w-1/2 space-y-6">
-            {/* Habit Name, Start date, Frequency (unchanged) */}
-            <div>
-              <label className="block text-lg sm:text-xl font-semibold text-sky-200 mb-2 text-left tracking-wide">Habit Name</label>
-              <input
-                type="text"
-                value={habitName}
-                onChange={(e) => setHabitName(e.target.value)}
-                placeholder="Morning Run"
-                className="w-full p-3 rounded-xl bg-slate-700 text-white border-2 border-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 transition text-left shadow-md"
-              />
-            </div>
-            <div>
-              <label className="block text-lg sm:text-xl font-semibold text-sky-200 mb-2 text-left tracking-wide">Start Date</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full p-3 rounded-xl bg-slate-700 text-white border-2 border-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 transition text-left shadow-md"
-              />
-            </div>
-            <div>
-              <label className="block text-lg sm:text-xl font-semibold text-sky-200 mb-2 text-left tracking-wide">Frequency</label>
-              <select
-                value={frequency}
-                onChange={(e) => {
-                  setFrequency(e.target.value);
-                  setSelectedDays([]);
-                }}
-                className="w-full p-3 rounded-xl bg-slate-700 text-white border-2 border-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 transition text-left shadow-md"
-              >
+    className = "w-full p-3 rounded-xl bg-slate-700 text-white border-2 border-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 transition text-left shadow-md"
+    >
                 <option value="Daily">Daily</option>
                 <option value="Weekly">Weekly</option>
                 <option value="Custom">Custom</option>
-              </select>
-            </div>
+              </select >
+            </div >
 
-            {/* Pre-req selection UI */}
-            <div>
+    {/* Pre-req selection UI */ }
+    < div >
               <label className="block text-lg sm:text-xl font-semibold text-sky-200 mb-2 text-left tracking-wide">Prerequisite Habits</label>
               <p className="text-sm text-slate-400 mb-2">Select habits that must be completed before this one (same-day requirement).</p>
               <div className="flex flex-col gap-2 max-h-40 overflow-auto p-2 bg-slate-700 rounded-md">
@@ -224,11 +189,11 @@ export default function AddHabit() {
                   ))
                 )}
               </div>
-            </div>
-          </div>
+            </div >
+          </div >
 
-          {/* Right side heatmap (unchanged) */}
-          <div className="w-full sm:w-1/2 space-y-4">
+    {/* Right side heatmap (unchanged) */ }
+    < div className = "w-full sm:w-1/2 space-y-4" >
             <h2 className="text-3xl sm:text-3xl font-extrabold text-sky-300 mb-6 text-center tracking-tight">Your Journey</h2>
             <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-sm sm:text-base">
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
@@ -245,11 +210,11 @@ export default function AddHabit() {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
+          </div >
+        </div >
 
-        {/* Buttons */}
-        <div className="mt-10 flex justify-center gap-6">
+    {/* Buttons */ }
+    < div className = "mt-10 flex justify-center gap-6" >
           <Link to="/">
             <button className="px-6 py-2.5 rounded-xl bg-gray-600 text-white text-base sm:text-lg font-semibold hover:bg-gray-700 transition-colors duration-200 shadow-md tracking-wide">
               Cancel
@@ -261,8 +226,8 @@ export default function AddHabit() {
           >
             Save
           </button>
-        </div>
-      </div>
-    </div>
+        </div >
+      </div >
+    </div >
   );
 }
